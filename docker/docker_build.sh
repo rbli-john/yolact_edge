@@ -1,0 +1,1 @@
+docker build --build-arg USER_ID=$UID --build-arg USER=$USER -t rbli_yolact_edge_image .

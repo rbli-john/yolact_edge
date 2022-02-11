@@ -1,4 +1,5 @@
 #!/bin/bash
+# Note. Please use docker_run.sh instead of this script.
 
 SOURCE_CODE=$1
 DATASETS=$2

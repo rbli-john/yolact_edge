@@ -1,4 +1,6 @@
 FROM nvcr.io/nvidia/cuda:11.0.3-cudnn8-devel-ubuntu18.04
+ENV http_proxy=http://172.24.206.4:3128
+ENV https_proxy=http://172.24.206.4:3128
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y  \
@@ -17,27 +19,34 @@ RUN apt-get update && \
     apt-mark hold libnvinfer7 libnvonnxparsers7 libnvparsers7 libnvinfer-plugin7 libnvinfer-dev libnvonnxparsers-dev libnvparsers-dev libnvinfer-plugin-dev python3-libnvinfer
 
 # create a non-root user
-ARG USER_ID=1000
-ARG USER=appuser
-RUN useradd -m --no-log-init --system --uid ${USER_ID} ${USER} -g sudo
+ARG GROUP_ID=10000
+ARG GROUP=oppous
+ARG USER_ID=1000110
+ARG USER=us000110
+RUN groupadd -g ${GROUP_ID} ${GROUP} \
+    && useradd -m --no-log-init --system --uid ${USER_ID} ${USER} -g ${GROUP}
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# # Install dependencies
+RUN pip install cython opencv-python pillow matplotlib GitPython termcolor tensorboard
+RUN pip install git+https://github.com/haotian-liu/cocoapi.git#"egg=pycocotools&subdirectory=PythonAPI"
+RUN pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 -f https://download.pytorch.org/whl/torch_stable.html
+
+# torch2trt
+# Seems that the original version of Dockerfile forget to install packaging which is needed in installing torch2trt
+RUN pip install packaging
+
 USER ${USER}
 WORKDIR /home/${USER}
 ENV PATH="/home/${USER}/.local/bin:${PATH}"
 
-# # Install dependencies
-RUN pip install --user cython opencv-python pillow matplotlib GitPython termcolor tensorboard
-RUN pip install --user git+https://github.com/haotian-liu/cocoapi.git#"egg=pycocotools&subdirectory=PythonAPI"
-RUN pip install --user torch==1.7.1+cu110 torchvision==0.8.2+cu110 -f https://download.pytorch.org/whl/torch_stable.html
-
-# torch2trt
 RUN git clone https://github.com/NVIDIA-AI-IOT/torch2trt
 WORKDIR /home/${USER}/torch2trt
 RUN python setup.py install --plugins --user
-
 WORKDIR /home/${USER}
-RUN ln -s /yolact_edge
-RUN ln -s /datasets
-WORKDIR /home/${USER}/yolact_edge
+RUN rm -rf torch2trt 
+# RUN ln -s /yolact_edge
+# RUN ln -s /datasets
+# WORKDIR /home/${USER}/yolact_edge
 
 ENV LANG C.UTF-8
