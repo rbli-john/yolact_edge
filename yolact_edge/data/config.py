@@ -209,8 +209,10 @@ youtube_vis_dataset = dataset_base.copy({
     'class_names': YOUTUBE_VIS_CLASSES,
     'label_map': YOUTUBE_VIS_LABEL_MAP,
 
-    'train_info': './data/YoutubeVIS/annotations/train.v4.json',
-    'train_images': './data/YoutubeVIS/train_all_frames/JPEGImages/',
+    # 'train_info': './data/YoutubeVIS/annotations/train.v4.json',
+    'train_info': './data/YoutubeVIS/annotations/train.json',
+    # 'train_images': './data/YoutubeVIS/train_all_frames/JPEGImages/',
+    'train_images': './data/YoutubeVIS/train/JPEGImages/',
     'use_all_frames': False,
 
     # Calibration image folder for TensorRT INT8 conversion.
@@ -223,8 +225,10 @@ youtube_vis_dataset = dataset_base.copy({
     'frame_offset_multiplier': 1,
     'all_frame_direction': 'allway',
 
-    'valid_info': './data/YoutubeVIS/annotations/valid.v4.json',
-    'valid_images': './data/YoutubeVIS/valid_all_frames/v4/',
+    # 'valid_info': './data/YoutubeVIS/annotations/valid.v4.json',
+    'valid_info': './data/YoutubeVIS/annotations/valid.json',
+    # 'valid_images': './data/YoutubeVIS/valid_all_frames/v4/',
+    'valid_images': './data/YoutubeVIS/valid/JPEGImages/',
 
     'images_per_video': 5,
     'is_video': True
