@@ -1090,6 +1090,8 @@ def evaluate(net:Yolact, dataset, train_mode=False, train_cfg=None):
                     batch = Variable(img.unsqueeze(0))
                     if args.cuda:
                         batch = batch.cuda()
+                
+                # print('--- batch_input size=', batch.size())
 
                 with timer.env('Network Extra'):
                     extras = {"backbone": "full", "interrupt": False,
@@ -1201,6 +1203,19 @@ def print_maps(all_maps):
     logger.info(output_str)
 
 
+import torch.nn as nn
+from typing import Dict
+
+class YolactWrapper(nn.Module):
+    def __init__(self, yolact_module: Yolact, extras: Dict):
+        super().__init__()
+        self.yolact_module = yolact_module
+        self.extras = extras
+
+    def forward(self, x):
+        return self.yolact_module(x, extras=self.extras)['pred_outs']
+
+
 
 if __name__ == '__main__':
     parse_args()
@@ -1271,6 +1286,22 @@ if __name__ == '__main__':
             logger.warning("No weights loaded!")
         net.eval()
         logger.info('Model loaded.')
+
+        extras = {"backbone": "full", "interrupt": False, "keep_statistics": True, "moving_statistics": None }
+        # netWrapper = YolactWrapper(net, extras)
+        # print('--- hello:', netWrapper(torch.zeros(2, 3, 550, 550)))
+        print('-- hi!', net(torch.zeros(2, 3, 550, 550), extras=extras)['pred_outs'])
+        # net(torch.randn(1, 3, 550, 550), extra)
+        logger.info('-- after test invoke net')
+
+        # test
+        # script_module = torch.jit.trace(
+        #     netWrapper,
+        #     torch.randn(1, 3, 550, 550))
+        # logger.info('--- traced model')
+        # torch.jit.save(script_module, 'output/yolact_edge_mobilenetv2_traced_module.pt')
+        # logger.info('--- Saved traced model')
+        exit(0)
 
         convert_to_tensorrt(net, cfg, args, transform=BaseTransform())
 
