@@ -584,14 +584,30 @@ def badhash(x):
     x =  ((x >> 16) ^ x) & 0xFFFFFFFF
     return x
 
+from yolact_edge.yolact_wrapper import YolactWrapper
+
 def evalimage(net:Yolact, path:str, save_path:str=None, detections:Detections=None, image_id=None):
-    frame = torch.from_numpy(cv2.imread(path)).cuda().float()
+    # frame = torch.from_numpy(cv2.imread(path)).cuda().float()
+    frame = torch.from_numpy(cv2.imread(path)).float()
     batch = FastBaseTransform()(frame.unsqueeze(0))
 
     if cfg.flow.warp_mode != 'none':
         assert False, "Evaluating the image with a video-based model. If you believe this is a problem, please report a issue at GitHub, thanks."
 
     extras = {"backbone": "full", "interrupt": False, "keep_statistics": False, "moving_statistics": None}
+
+    # test
+    wrapper = YolactWrapper(net, extras)
+    wrapper.eval()
+    # out = wrapper(batch)
+    # print('--- out_hi=', out)
+    # print('--- len(out)', len(out))
+    script_module = torch.jit.trace(wrapper, batch)
+    print('--- traced model')
+    torch.jit.save(script_module, 'output/models/yolact_edge_mobilenetv2_traced_module.pt')
+    print('--- traced done')
+    exit(0)
+
 
 
     preds = net(batch, extras=extras)["pred_outs"]
@@ -856,6 +872,24 @@ def savevideo(net:Yolact, in_path:str, out_path:str):
                             "moving_statistics": moving_statistics}
 
                     with torch.no_grad():
+                        # test
+                        print('--- batch.size in video', batch.size())
+                        batch = torch.randn(1, 3, 550, 550)
+                        netWrapper = YolactWrapper(net, extras)
+                        out1 = netWrapper(batch)
+                        print('--- out hi hi=', out1)
+                        # print('---- out1.keys', out1.keys())
+                        # for key in out1.keys():
+                        #     print(f'key: {key}, size: {out1[key].size()}, type: {out1[key].type()}')
+                        # print('--- type(out)', type(out1))
+                        # print('--- len(out1)', len(out1))
+                        # script_module = torch.jit.trace(
+                        #     netWrapper, batch)
+                        # print('--- traced model')
+                        # torch.jit.save(script_module, 'output/yolact_edge_mobilenetv2_traced_module.pt')
+                        # print('--- traced done')
+                        exit(0)
+
                         net_outs = net(batch, extras=extras)
 
                     moving_statistics["feats"] = net_outs["feats"]
@@ -1206,15 +1240,6 @@ def print_maps(all_maps):
 import torch.nn as nn
 from typing import Dict
 
-class YolactWrapper(nn.Module):
-    def __init__(self, yolact_module: Yolact, extras: Dict):
-        super().__init__()
-        self.yolact_module = yolact_module
-        self.extras = extras
-
-    def forward(self, x):
-        return self.yolact_module(x, extras=self.extras)['pred_outs']
-
 
 
 if __name__ == '__main__':
@@ -1284,24 +1309,36 @@ if __name__ == '__main__':
             net.load_weights(args.trained_model, args=args)
         else:
             logger.warning("No weights loaded!")
+        
+        # test
+        logger.info('args.cuda=%s', args.cuda)
+        logger.info('args.crop=%s', args.crop)
+        # net.cpu()
+
         net.eval()
         logger.info('Model loaded.')
 
-        extras = {"backbone": "full", "interrupt": False, "keep_statistics": True, "moving_statistics": None }
-        # netWrapper = YolactWrapper(net, extras)
-        # print('--- hello:', netWrapper(torch.zeros(2, 3, 550, 550)))
-        print('-- hi!', net(torch.zeros(2, 3, 550, 550), extras=extras)['pred_outs'])
-        # net(torch.randn(1, 3, 550, 550), extra)
-        logger.info('-- after test invoke net')
+        # # test
+        # # extras = {"backbone": "full", "interrupt": False, "keep_statistics": True, "moving_statistics": None }
+        # extras = {"backbone": "full", "interrupt": False,
+        #                       "moving_statistics": {"aligned_feats": []}}
+        # # netWrapper = YolactWrapper(net, extras)
+        # # print('--- hello:', netWrapper(torch.zeros(2, 3, 550, 550)))
+        # input = torch.ones(2, 3, 550, 550) * 0.5 
+        # # print(input)
+        # print('input.is_cuda', input.is_cuda)
+        # print('-- hi!', net(input, extras=extras)['pred_outs'])
+        # # net(torch.randn(1, 3, 550, 550), extra)
+        # logger.info('-- after test invoke net')
 
-        # test
-        # script_module = torch.jit.trace(
-        #     netWrapper,
-        #     torch.randn(1, 3, 550, 550))
-        # logger.info('--- traced model')
-        # torch.jit.save(script_module, 'output/yolact_edge_mobilenetv2_traced_module.pt')
-        # logger.info('--- Saved traced model')
-        exit(0)
+        # # test
+        # # script_module = torch.jit.trace(
+        # #     netWrapper,
+        # #     torch.randn(1, 3, 550, 550))
+        # # logger.info('--- traced model')
+        # # torch.jit.save(script_module, 'output/yolact_edge_mobilenetv2_traced_module.pt')
+        # # logger.info('--- Saved traced model')
+        # exit(0)
 
         convert_to_tensorrt(net, cfg, args, transform=BaseTransform())
 
